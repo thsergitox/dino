@@ -35,28 +35,30 @@ A full per-distro install guide lives in [docs/INSTALL.md](docs/INSTALL.md).
 
 ## Quick start
 
+**One-liner install** (system deps + Python package + interactive setup):
+
 ```bash
-# 1. Clone and install
-git clone https://github.com/thsergitox/dino.git
-cd dino
-pipx install .   # or:  python -m pip install --user .
-
-# 2. Tell dino your OpenAI key (any of these works)
-export OPENAI_API_KEY="sk-..."
-# or write ~/.config/dino/config.toml — see docs/INSTALL.md
-
-# 3. Wire it to a hotkey in Hyprland (~/.config/hypr/hyprland.conf)
-bind  = SUPER, V, exec, dino start
-bindr = SUPER, V, exec, dino stop
+curl -LsSf https://raw.githubusercontent.com/thsergitox/dino/main/scripts/install.sh | bash
 ```
 
-Reload Hyprland (`hyprctl reload`), focus any text field, hold `SUPER+V`, talk, release. The transcript appears where you were typing.
+The installer detects your distribution (Arch, Debian/Ubuntu, Fedora, openSUSE), installs the system dependencies, picks `uv` over `pipx` when available, runs `dino setup` so you can paste your OpenAI key into a TUI prompt, and offers to append the Hyprland binding for you.
 
-A copy-pasteable Hyprland snippet lives in [examples/hyprland.conf](examples/hyprland.conf), and a deeper Hyprland walkthrough lives in [docs/HYPRLAND_SETUP.md](docs/HYPRLAND_SETUP.md).
+> **v0.1 supports only the OpenAI Whisper API.** The setup menu lists the other providers (Groq, Deepgram, AssemblyAI, local whisper.cpp) so you can see the roadmap, but they are disabled until v0.2.
+
+**Already cloned?**
+
+```bash
+./scripts/install.sh
+```
+
+**Prefer to drive the install yourself?** See [docs/INSTALL.md](docs/INSTALL.md) for the `uv`, `pipx`, and manual paths.
+
+Once installed, reload Hyprland (`hyprctl reload`), focus any text field, hold `SUPER+V`, talk, release. The transcript appears where you were typing.
 
 ## CLI
 
 ```text
+dino setup    # interactive first-run wizard (provider, API key, Hyprland binding)
 dino start    # begin recording (bound to key-down)
 dino stop     # stop, transcribe, type the result (bound to key-up)
 dino toggle   # start if idle, otherwise stop — handy outside push-to-talk

@@ -106,7 +106,19 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("toggle", help="Start if idle, otherwise stop.").set_defaults(
         func=_cmd_toggle
     )
+    sub.add_parser(
+        "setup",
+        help="Interactive first-run configuration (API key, model, Hyprland binding).",
+    ).set_defaults(func=_cmd_setup)
     return parser
+
+
+def _cmd_setup(args: argparse.Namespace) -> int:
+    # Lazy import so the hot-path commands (start/stop/toggle) don't pay
+    # rich/questionary startup cost on every Hyprland keypress.
+    from dino import setup_wizard
+
+    return setup_wizard.run()
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,118 +1,155 @@
 # Installation
 
-`dino` is distro-agnostic: it relies on three pieces of software that ship in the official repos of every major Linux distribution.
+Three paths, from least friction to most control. **Pick one — they install the same software.**
 
-## 1. System dependencies
+| Path | When to use it |
+|---|---|
+| [Automated installer](#1-automated-installer-recommended) | You want a single command and an interactive wizard. |
+| [Manual with `uv`](#2-manual--uv-recommended-for-tinkerers) | You already manage Python with `uv` (Astral). |
+| [Manual with `pipx`](#3-manual--pipx) | You prefer the older, stable `pipx` workflow. |
 
-### Arch / Manjaro / EndeavourOS
+> **v0.1 supports the OpenAI Whisper API only.** The setup wizard lists Groq, Deepgram, AssemblyAI, and local `whisper.cpp` in the provider menu so you can see what is coming, but selecting them returns a "coming soon" message. Multi-provider support lands in v0.2.
+
+---
+
+## 1. Automated installer (recommended)
 
 ```bash
+curl -LsSf https://raw.githubusercontent.com/thsergitox/dino/main/scripts/install.sh | bash
+```
+
+The script:
+
+1. Detects your distribution (Arch, Debian/Ubuntu, Fedora, openSUSE).
+2. Installs missing system dependencies via your package manager (`python`, `pipewire`/`pw-record`, `wtype`, `libnotify`) — asks before sudoing.
+3. Installs `uv` if not present (you can decline), falling back to `pipx`.
+4. Runs `uv tool install dino-voice` (or `pipx install dino-voice`).
+5. Launches `dino setup` — a TUI that asks for your provider, API key, model, language hint, vocabulary prompt, and offers to append the Hyprland binding to your `hyprland.conf`.
+
+**Environment overrides**:
+
+| Variable | Effect |
+|---|---|
+| `DINO_INSTALLER=uv` or `pipx` | Force a specific backend. |
+| `DINO_NO_SYSTEM_DEPS=1` | Skip the system-deps step (CI / unusual distros). |
+| `DINO_SKIP_SETUP=1` | Don't launch `dino setup` at the end. |
+| `DINO_GIT_REF=branch_or_tag` | When piped, install from a non-`main` ref. |
+
+If you already cloned the repo, the same script works locally — it just installs from the checkout instead of GitHub:
+
+```bash
+git clone https://github.com/thsergitox/dino.git
+cd dino
+./scripts/install.sh
+```
+
+---
+
+## 2. Manual — `uv` (recommended for tinkerers)
+
+[`uv`](https://docs.astral.sh/uv/) is Astral's Python tool — 10–100× faster than `pipx`, manages Python versions automatically, configures PATH for you.
+
+### 2a. Install system dependencies
+
+```bash
+# Arch / Manjaro / EndeavourOS / CachyOS
 sudo pacman -S python pipewire wtype libnotify
-```
 
-### Debian / Ubuntu / Pop!_OS
+# Debian / Ubuntu / Pop!_OS / Mint
+sudo apt install python3 pipewire-bin wtype libnotify-bin
 
-```bash
-sudo apt install python3 python3-pip pipewire-bin wtype libnotify-bin
-```
-
-### Fedora / Nobara
-
-```bash
+# Fedora / Nobara
 sudo dnf install python3 pipewire-utils wtype libnotify
-```
 
-### openSUSE
-
-```bash
+# openSUSE
 sudo zypper install python3 pipewire-tools wtype libnotify-tools
 ```
 
-### Verify
+### 2b. Install `uv`
 
 ```bash
-pw-record --help     # should print PipeWire's capture help
-wtype --help         # should print wtype's help
-notify-send hello    # should pop a notification
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-If any of those fail, fix it before continuing — `dino` won't.
+Open a new shell or `source ~/.cargo/env` to pick up `uv` on PATH.
 
-## 2. Install dino
-
-The recommended path is [`pipx`](https://pipx.pypa.io/) so the install does not pollute your system Python.
+### 2c. Install `dino`
 
 ```bash
-sudo pacman -S python-pipx   # or: apt install pipx / dnf install pipx
-pipx ensurepath
+# From GitHub
+uv tool install git+https://github.com/thsergitox/dino.git
 
+# Or from a local checkout
 git clone https://github.com/thsergitox/dino.git
 cd dino
+uv tool install .
+```
+
+### 2d. Configure
+
+```bash
+dino setup
+```
+
+---
+
+## 3. Manual — `pipx`
+
+If you don't want `uv` and don't have `pipx`:
+
+```bash
+# Arch
+sudo pacman -S python-pipx
+# Debian/Ubuntu
+sudo apt install pipx
+# Fedora
+sudo dnf install pipx
+# openSUSE
+sudo zypper install python3-pipx
+
+pipx ensurepath   # adds ~/.local/bin to PATH if needed
+```
+
+Then install `dino` (system deps from § 2a still required):
+
+```bash
+pipx install git+https://github.com/thsergitox/dino.git
+# or, from a local checkout:
 pipx install .
 ```
 
-Alternative without pipx:
+Configure:
 
 ```bash
-python -m pip install --user .
+dino setup
 ```
+
+---
+
+## 4. After installation
 
 Verify:
 
 ```bash
 dino --version
+pw-record --help && wtype --help && notify-send hello
 ```
 
-## 3. Configure your OpenAI API key
+Bind the hotkey in Hyprland — `dino setup` offers to do this for you, or do it manually as shown in [HYPRLAND_SETUP.md](HYPRLAND_SETUP.md).
 
-Create one at <https://platform.openai.com/api-keys>. Pick **any** of these three options:
+## Configuration reference
 
-### Option A — Environment variable (simple)
+`dino` reads, in order:
 
-Add to `~/.bashrc`, `~/.zshrc`, or `~/.config/fish/config.fish`:
-
-```bash
-export OPENAI_API_KEY="sk-..."
-```
-
-Reload your shell. If you launch Hyprland from a TTY, also export it in `~/.config/hypr/hyprland.conf`:
-
-```ini
-env = OPENAI_API_KEY,sk-...
-```
-
-### Option B — Config file (cleaner)
-
-```bash
-mkdir -p ~/.config/dino
-cat > ~/.config/dino/config.toml <<'EOF'
-[whisper]
-api_key  = "sk-..."
-model    = "whisper-1"
-language = "en"
-EOF
-chmod 600 ~/.config/dino/config.toml
-```
-
-### Option C — Secret manager (most secure)
-
-Pull the key from `pass`, `gnome-keyring`, `1password-cli`, etc. and export it before Hyprland starts. Example with `pass`:
-
-```bash
-export OPENAI_API_KEY="$(pass show openai/api-key)"
-```
-
-## 4. Bind a hotkey
-
-See [HYPRLAND_SETUP.md](HYPRLAND_SETUP.md) for the push-to-talk binding and troubleshooting.
-
-## Environment variables reference
+1. Built-in defaults.
+2. `~/.config/dino/config.toml` (`dino setup` writes this).
+3. Environment variables (override anything in the file):
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `OPENAI_API_KEY` | API authentication | *(required)* |
+| `OPENAI_API_KEY` | API authentication | *(required if not in config)* |
 | `DINO_MODEL` | Whisper model | `whisper-1` |
-| `DINO_LANGUAGE` | ISO-639-1 hint (`en`, `es`, …) | auto-detect |
+| `DINO_LANGUAGE` | ISO-639-1 language hint (`en`, `es`, …) | auto-detect |
 | `DINO_PROMPT` | Vocabulary bias prompt | *(empty)* |
 | `XDG_CONFIG_HOME` | Config file root | `~/.config` |
 | `XDG_RUNTIME_DIR` | PID / WAV root | `/tmp/dino-$UID` |
@@ -120,6 +157,12 @@ See [HYPRLAND_SETUP.md](HYPRLAND_SETUP.md) for the push-to-talk binding and trou
 ## Uninstall
 
 ```bash
+# uv install
+uv tool uninstall dino-voice
+
+# pipx install
 pipx uninstall dino-voice
+
+# Remove your configuration
 rm -rf ~/.config/dino
 ```
