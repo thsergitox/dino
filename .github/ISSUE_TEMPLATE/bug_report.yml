@@ -1,0 +1,66 @@
+name: Bug report
+description: Something broke or behaves unexpectedly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please fill out every section — vague reports get closed.
+
+  - type: input
+    id: dino-version
+    attributes:
+      label: dino version
+      description: Output of `dino --version`.
+      placeholder: "dino 0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: compositor
+    attributes:
+      label: Compositor and version
+      description: e.g. output of `hyprctl version`, `swaymsg -v`, `gnome-shell --version`.
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution
+      placeholder: "Arch Linux, Ubuntu 24.04, Fedora 41, …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: deps
+    attributes:
+      label: System dependencies
+      description: Output of `pw-record --version && wtype -v && python3 --version`.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands or keybindings used.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: Include full stderr output if any.
+      render: shell
+    validations:
+      required: true

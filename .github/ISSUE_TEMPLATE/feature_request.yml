@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a new capability for dino.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a feature request, check the [roadmap](../../README.md#roadmap) — your idea may already be queued.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the user pain. Avoid jumping to a solution here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you change `dino` to solve it? Reference the relevant adapter / port if you can.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Other approaches you weighed and why you rejected them.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This fits the project's "small, hackable, push-to-talk dictation, growing toward assistant" vision.
+          required: true
+        - label: I am willing to open the PR myself.

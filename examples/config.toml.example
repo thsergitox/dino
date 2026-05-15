@@ -1,0 +1,20 @@
+# Copy to ~/.config/dino/config.toml
+# All keys are optional — `dino` falls back to env vars and defaults.
+
+[whisper]
+# Prefer setting OPENAI_API_KEY in the environment. Only put it here if you
+# really need to, and chmod the file to 600.
+# api_key = "sk-..."
+
+# whisper-1 (default, cheap), gpt-4o-transcribe, gpt-4o-mini-transcribe
+model = "whisper-1"
+
+# ISO-639-1 language hint. Comment out for auto-detect.
+# language = "en"
+
+# Biases the model toward your vocabulary — paste jargon you use a lot.
+# prompt = "Coding terms: kubernetes, postgres, kafka, terraform, hyprland."
+
+# Audio capture parameters. Defaults are tuned for Whisper.
+sample_rate = 16000
+channels    = 1
