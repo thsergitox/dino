@@ -12,6 +12,8 @@ Heavy imports (rich, questionary) live inside `run()` so the hot-path commands
 from __future__ import annotations
 
 import os
+import platform
+import shutil
 import stat
 import textwrap
 from pathlib import Path
@@ -69,6 +71,15 @@ def _hypr_config_path() -> Path | None:
 
 def _running_under_hyprland() -> bool:
     return bool(os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"))
+
+
+def _distro_id() -> str:
+    """Best-effort distro ID via /etc/os-release."""
+    try:
+        info = platform.freedesktop_os_release()
+    except (OSError, AttributeError):
+        return ""
+    return (info.get("ID") or "").lower()
 
 
 def _toml_escape(value: str) -> str:
@@ -235,6 +246,10 @@ def run() -> int:
             "para configurarlo en tu compositor.[/dim]"
         )
 
+    # ── Step 7: clipboard persistence (wl-clip-persist) ─────────────────────
+    if _running_under_hyprland() or _hypr_config_path():
+        _maybe_setup_clipboard_persistence(console)
+
     # ── Done ────────────────────────────────────────────────────────────────
     console.print()
     console.print(
@@ -347,3 +362,82 @@ def _append_hyprland_block(console, term_spec, lifecycle: str) -> None:
         console.print(f"[green]✓[/green] Script lazy escrito en [cyan]{script_path}[/cyan]")
 
     console.print("[dim]Ejecutá `hyprctl reload` para activar.[/dim]")
+
+
+def _maybe_setup_clipboard_persistence(console) -> None:
+    """Detect `wl-clip-persist` and offer to wire it into hyprland.conf.
+
+    Without `wl-clip-persist`, anything copied via `wl-copy` disappears the
+    moment the Wayland session ends (logout, reboot). The daemon keeps the
+    clipboard alive across that boundary by holding onto the selection.
+    """
+    from rich.prompt import Confirm  # rich is already loaded by run()
+
+    path = _hypr_config_path()
+    if path is None:
+        return
+
+    existing = path.read_text()
+    if "wl-clip-persist" in existing:
+        console.print("[dim]wl-clip-persist ya está configurado en hyprland.conf.[/dim]")
+        return
+
+    has_binary = shutil.which("wl-clip-persist") is not None
+
+    console.print()
+    if not has_binary:
+        console.print(
+            "[yellow]Tip:[/yellow] sin [cyan]wl-clip-persist[/cyan], lo que copies con dino "
+            "se pierde al cerrar la sesión Wayland."
+        )
+        distro = _distro_id()
+        if distro in ("arch", "manjaro", "endeavouros", "cachyos"):
+            console.print(
+                "  Instalación: [bold]paru -S wl-clip-persist-bin[/bold] "
+                "(o yay -S wl-clip-persist-bin) — está en AUR."
+            )
+        elif distro in ("debian", "ubuntu", "pop", "linuxmint"):
+            console.print(
+                "  Instalación: [bold]cargo install wl-clip-persist[/bold] "
+                "o descargá un release prebuilt de "
+                "[link]https://github.com/Linus789/wl-clip-persist/releases[/link]"
+            )
+        elif distro in ("fedora", "nobara", "rhel"):
+            console.print(
+                "  Instalación: [bold]cargo install wl-clip-persist[/bold] "
+                "o descargá un release prebuilt de "
+                "[link]https://github.com/Linus789/wl-clip-persist/releases[/link]"
+            )
+        else:
+            console.print(
+                "  Releases prebuilt: "
+                "[link]https://github.com/Linus789/wl-clip-persist/releases[/link]"
+            )
+        console.print(
+            "[dim]Después instalarlo, volvé a correr `dino setup` para que te agregue "
+            "el exec-once a hyprland.conf.[/dim]"
+        )
+        return
+
+    # Binary is installed — offer to wire it up.
+    if not Confirm.ask(
+        "¿Activar [cyan]wl-clip-persist[/cyan] al iniciar Hyprland para que el clipboard "
+        "sobreviva al cerrar sesión?",
+        default=True,
+    ):
+        return
+
+    block = (
+        "\n# wl-clip-persist — keep clipboard alive across Wayland sessions "
+        "(added by `dino setup`)\n"
+        "exec-once = wl-clip-persist\n"
+    )
+    with path.open("a") as fh:
+        fh.write(block)
+    console.print(
+        f"[green]✓[/green] Agregado [cyan]wl-clip-persist[/cyan] a [cyan]{path}[/cyan]"
+    )
+    console.print(
+        "[dim]Empieza a tomar efecto en la próxima sesión Wayland, o ejecutá manualmente "
+        "`wl-clip-persist &` ahora.[/dim]"
+    )

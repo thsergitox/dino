@@ -67,6 +67,22 @@ sudo zypper install python3 pipewire-tools wl-clipboard libnotify-tools
 
 `wtype` is **optional** (only needed if you set `[output].adapter = "wtype"` in `config.toml`). The default `wl-copy` flow doesn't need it.
 
+### Recommended: clipboard persistence
+
+By default, the Wayland clipboard is wiped when the session ends. To keep transcripts available after logout/reboot, install [`wl-clip-persist`](https://github.com/Linus789/wl-clip-persist):
+
+```bash
+# Arch + AUR helper
+paru -S wl-clip-persist-bin     # or: yay -S wl-clip-persist-bin
+
+# Debian / Ubuntu / Fedora / openSUSE (no official package — use cargo or releases)
+cargo install wl-clip-persist
+# or grab a precompiled binary from
+# https://github.com/Linus789/wl-clip-persist/releases
+```
+
+`dino setup` will detect it and offer to add `exec-once = wl-clip-persist` to your `hyprland.conf` automatically.
+
 ### 2b. Install `uv`
 
 ```bash

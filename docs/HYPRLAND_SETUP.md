@@ -113,9 +113,31 @@ pw-record /tmp/test.wav    # record 3 s, Ctrl+C, then `aplay /tmp/test.wav`
 
 If the wrong source is captured, set it as default in `wpctl` or `pavucontrol`.
 
-### `wl-copy` clipboard disappears when I close dino
+### `wl-copy` clipboard disappears when I close dino or log out
 
-`wl-copy` forks by default — the clipboard survives until something else replaces it or the Wayland session ends. For full survival across logouts, install [`wl-clip-persist`](https://github.com/Linus789/wl-clip-persist).
+`wl-copy` forks by default — the clipboard survives until something else replaces it or the Wayland session ends. To keep it alive across logouts and reboots, run [`wl-clip-persist`](https://github.com/Linus789/wl-clip-persist) as a background daemon.
+
+`dino setup` checks for `wl-clip-persist`: if it's installed it offers to add `exec-once = wl-clip-persist` to your `hyprland.conf`; if it isn't, the wizard prints the right install command for your distro.
+
+**Manual install (Arch, AUR):**
+
+```bash
+paru -S wl-clip-persist-bin    # or: yay -S wl-clip-persist-bin
+```
+
+**Manual install (Debian/Ubuntu/Fedora/openSUSE — no official package):**
+
+```bash
+cargo install wl-clip-persist
+# or grab a precompiled release from
+# https://github.com/Linus789/wl-clip-persist/releases
+```
+
+**Wire it into Hyprland yourself:**
+
+```ini
+exec-once = wl-clip-persist
+```
 
 ## Legacy CLI (v0.1 style)
 
