@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dino-voice"
-version = "0.1.0"
-description = "Push-to-talk voice dictation for Wayland — Whisper-powered, designed to grow into a voice assistant."
+version = "0.2.0"
+description = "Persistent voice-dictation TUI for Hyprland — Whisper-powered, designed to grow into a voice assistant."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
@@ -29,6 +29,8 @@ dependencies = [
     "requests>=2.31",
     "rich>=13.7",
     "questionary>=2.0",
+    "textual>=0.60",
+    "numpy>=1.26",
 ]
 
 [project.optional-dependencies]

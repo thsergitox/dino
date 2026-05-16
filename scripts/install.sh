@@ -27,7 +27,7 @@ log()  { printf '%s==>%s %s\n' "$CYAN" "$RESET" "$1" >&2; }
 ok()   { printf '%s✓%s   %s\n' "$GREEN" "$RESET" "$1" >&2; }
 warn() { printf '%s!%s   %s\n' "$YELLOW" "$RESET" "$1" >&2; }
 die()  { printf '%s✗%s   %s\n' "$RED" "$RESET" "$1" >&2; exit 1; }
-ask()  { # prompt → echoes y/n
+ask()  {
     local q="$1" default="${2:-y}"
     local hint="[Y/n]"; [ "$default" = "n" ] && hint="[y/N]"
     local reply
@@ -40,7 +40,7 @@ banner() {
     cat >&2 <<EOF
 ${CYAN}${BOLD}
    ┌─────────────────────────────────────────────┐
-   │   dino — push-to-talk voice dictation       │
+   │   dino — voice dictation TUI                │
    │   Wayland · Hyprland · OpenAI Whisper       │
    └─────────────────────────────────────────────┘
 ${RESET}
@@ -57,48 +57,95 @@ detect_distro() {
     fi
 }
 
+# Build the sudo command for a given distro family.
+sudo_install_command_for() {
+    local distro="$1"
+    case "$distro" in
+        *arch*|*manjaro*|*endeavouros*|*cachyos*)
+            echo "sudo pacman -S --needed python pipewire wl-clipboard libnotify"
+            ;;
+        *debian*|*ubuntu*|*pop*|*mint*)
+            echo "sudo apt update && sudo apt install -y python3 python3-pip pipewire-bin wl-clipboard libnotify-bin"
+            ;;
+        *fedora*|*nobara*|*rhel*)
+            echo "sudo dnf install -y python3 pipewire-utils wl-clipboard libnotify"
+            ;;
+        *suse*|*opensuse*)
+            echo "sudo zypper install -y python3 pipewire-tools wl-clipboard libnotify-tools"
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
 install_system_deps() {
     [ "${DINO_NO_SYSTEM_DEPS:-0}" = "1" ] && { log "Skipping system deps (DINO_NO_SYSTEM_DEPS=1)."; return; }
 
-    local distro
-    distro=$(detect_distro)
-    log "Detected distro family: ${BOLD}${distro}${RESET}"
+    # Required system binaries with human-readable description.
+    local pairs=(
+        "pw-record:PipeWire audio capture"
+        "wl-copy:wl-clipboard (primary text output in v0.2)"
+        "notify-send:libnotify (desktop notifications)"
+        "python3:Python 3.10+ runtime"
+    )
 
     local missing=()
-    command -v pw-record   >/dev/null 2>&1 || missing+=("pw-record (PipeWire)")
-    command -v wtype       >/dev/null 2>&1 || missing+=("wtype")
-    command -v notify-send >/dev/null 2>&1 || missing+=("notify-send (libnotify)")
-    command -v python3     >/dev/null 2>&1 || missing+=("python3")
+    local entry bin desc
+    for entry in "${pairs[@]}"; do
+        bin="${entry%%:*}"
+        desc="${entry#*:}"
+        command -v "$bin" >/dev/null 2>&1 || missing+=("$bin ($desc)")
+    done
 
     if [ ${#missing[@]} -eq 0 ]; then
         ok "System dependencies already installed."
         return
     fi
 
-    warn "Missing: ${missing[*]}"
+    local distro
+    distro=$(detect_distro)
+    local sudo_cmd
+    sudo_cmd=$(sudo_install_command_for "$distro")
+    [ -z "$sudo_cmd" ] && die "Distribution '$distro' not recognized. Install manually: python3, pipewire (pw-record), wl-clipboard, libnotify; then re-run with DINO_NO_SYSTEM_DEPS=1."
 
-    case "$distro" in
-        *arch*|*manjaro*|*endeavouros*|*cachyos*)
-            ask "Install via pacman? (sudo required)" "y" \
-                && sudo pacman -S --needed --noconfirm python pipewire wtype libnotify
-            ;;
-        *debian*|*ubuntu*|*pop*|*mint*)
-            ask "Install via apt? (sudo required)" "y" \
-                && { sudo apt update && sudo apt install -y python3 python3-pip pipewire-bin wtype libnotify-bin; }
-            ;;
-        *fedora*|*nobara*|*rhel*)
-            ask "Install via dnf? (sudo required)" "y" \
-                && sudo dnf install -y python3 pipewire-utils wtype libnotify
-            ;;
-        *suse*|*opensuse*)
-            ask "Install via zypper? (sudo required)" "y" \
-                && sudo zypper install -y python3 pipewire-tools wtype libnotify-tools
-            ;;
-        *)
-            die "Unknown distro. Install manually: python3, pipewire (pw-record), wtype, libnotify, then re-run with DINO_NO_SYSTEM_DEPS=1."
-            ;;
-    esac
-    ok "System dependencies installed."
+    # ──────────── BIG warning ────────────
+    cat >&2 <<EOF
+${RED}${BOLD}
+   ╔═══════════════════════════════════════════════════════════════╗
+   ║                  MISSING SYSTEM DEPENDENCIES                  ║
+   ╚═══════════════════════════════════════════════════════════════╝
+${RESET}
+${YELLOW}The following packages are required but not installed:${RESET}
+
+EOF
+    local m
+    for m in "${missing[@]}"; do
+        printf '   %s•%s %s\n' "$RED" "$RESET" "$m" >&2
+    done
+
+    cat >&2 <<EOF
+
+${CYAN}${BOLD}This command would be run:${RESET}
+
+   ${BOLD}${sudo_cmd}${RESET}
+
+${DIM}(sudo will prompt you for your password.)${RESET}
+
+EOF
+
+    if ask "Execute this command now?" "y"; then
+        # eval so &&-chained apt update + install both run under sudo.
+        if eval "$sudo_cmd"; then
+            ok "System dependencies installed."
+        else
+            die "Installation failed. Resolve the error and re-run $0."
+        fi
+    else
+        warn "Skipped. Install the dependencies manually, then re-run:"
+        warn "   $0"
+        exit 0
+    fi
 }
 
 # ── Python install backend (uv preferred) ────────────────────────────────────
@@ -110,7 +157,6 @@ ensure_uv() {
     warn "uv not found."
     if ask "Install uv now? (recommended — 10–100× faster than pip, manages Python automatically)" "y"; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
-        # Pick up the freshly installed binary without requiring a new shell.
         export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
         command -v uv >/dev/null 2>&1 || die "uv install ran but the binary isn't on PATH. Open a new shell and re-run."
         ok "uv installed."
@@ -140,7 +186,6 @@ install_dino() {
     local backend="${DINO_INSTALLER:-}"
     local source
 
-    # Source resolution: cloned repo if pyproject.toml is here, else from git.
     if [ -f "$(dirname "$0")/../pyproject.toml" ]; then
         source="$(cd "$(dirname "$0")/.." && pwd)"
         log "Installing from local checkout: ${source}"
@@ -150,7 +195,6 @@ install_dino() {
         log "Installing from ${source}"
     fi
 
-    # Backend selection.
     if [ -z "$backend" ]; then
         if ensure_uv 2>/dev/null; then backend="uv"; else backend="pipx"; fi
     fi
@@ -178,7 +222,6 @@ install_dino() {
     ok "dino $(dino --version 2>/dev/null | awk '{print $2}') ready."
 }
 
-# ── Run the interactive setup ────────────────────────────────────────────────
 run_setup() {
     [ "${DINO_SKIP_SETUP:-0}" = "1" ] && { log "Skipping setup (DINO_SKIP_SETUP=1)."; return; }
     echo
@@ -186,14 +229,13 @@ run_setup() {
     dino setup
 }
 
-# ── Main ─────────────────────────────────────────────────────────────────────
 main() {
     banner
     install_system_deps
     install_dino
     run_setup
     echo
-    ok "All done. Bind your hotkey in Hyprland and start dictating."
+    ok "All done. Pulsá SUPER+Z en Hyprland (después de hyprctl reload) y arranquemos."
 }
 
 main "$@"

@@ -1,0 +1,52 @@
+/* dino TUI styles — blue accent, dark base. */
+
+Screen {
+    background: $surface;
+    color: $text;
+    layers: base;
+}
+
+#container {
+    height: 100%;
+    width: 100%;
+    layout: vertical;
+}
+
+#title {
+    height: 1;
+    content-align: center middle;
+    color: $accent;
+    text-style: bold;
+}
+
+#hyprland-notice {
+    height: 1;
+    content-align: center middle;
+    color: $warning;
+    display: none;
+}
+
+#hyprland-notice.-visible {
+    display: block;
+}
+
+StatusLabel {
+    height: 3;
+    margin: 1 0 0 0;
+}
+
+SpectrumWidget {
+    height: 1fr;
+    margin: 0 2;
+    color: $accent;
+}
+
+HistoryLog {
+    height: 1fr;
+    margin: 0 1;
+}
+
+FooterHints {
+    height: 1;
+    dock: bottom;
+}

@@ -16,6 +16,7 @@ import shutil
 import signal
 import subprocess
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -35,8 +36,9 @@ class Recorder:
         return self.runtime_dir / "recorder.pid"
 
     @property
-    def wav_file(self) -> Path:
-        return self.runtime_dir / "recording.wav"
+    def wav_pointer_file(self) -> Path:
+        """Sidecar that remembers which UUID-named WAV the latest run wrote to."""
+        return self.runtime_dir / "recorder.wav-path"
 
     def is_recording(self) -> bool:
         pid = self._read_pid()
@@ -62,15 +64,14 @@ class Recorder:
         if self.is_recording():
             raise RecorderError("Already recording — ignoring duplicate start.")
 
-        # Fresh WAV every run.
-        self.wav_file.unlink(missing_ok=True)
+        wav_path = self.runtime_dir / f"recording-{uuid.uuid4().hex[:8]}.wav"
 
         cmd = [
             "pw-record",
             "--rate", str(self.sample_rate),
             "--channels", str(self.channels),
             "--format", "s16",
-            str(self.wav_file),
+            str(wav_path),
         ]
         # start_new_session=True detaches from this process group so the recorder
         # survives the calling CLI exiting (Hyprland fires-and-forgets the bind).
@@ -82,6 +83,7 @@ class Recorder:
             start_new_session=True,
         )
         self.pid_file.write_text(str(proc.pid))
+        self.wav_pointer_file.write_text(str(wav_path))
 
     def stop(self, *, timeout: float = 2.0) -> Path:
         pid = self._read_pid()
@@ -111,9 +113,10 @@ class Recorder:
 
         self.pid_file.unlink(missing_ok=True)
 
-        if not self.wav_file.is_file() or self.wav_file.stat().st_size < 44:
+        wav_path = self._read_wav_pointer()
+        if wav_path is None or not wav_path.is_file() or wav_path.stat().st_size < 44:
             raise RecorderError("Recording produced no audio (empty WAV).")
-        return self.wav_file
+        return wav_path
 
     def _read_pid(self) -> int | None:
         if not self.pid_file.is_file():
@@ -123,3 +126,10 @@ class Recorder:
         except ValueError:
             self.pid_file.unlink(missing_ok=True)
             return None
+
+    def _read_wav_pointer(self) -> Path | None:
+        if not self.wav_pointer_file.is_file():
+            return None
+        path = Path(self.wav_pointer_file.read_text().strip())
+        self.wav_pointer_file.unlink(missing_ok=True)
+        return path
