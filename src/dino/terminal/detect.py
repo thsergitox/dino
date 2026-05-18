@@ -8,7 +8,7 @@ scratchpad. The detection order is:
 
 Each terminal spec also carries its per-emulator flag for setting the Wayland
 `app_id` (or X11 WM class) to ``dino`` — required so Hyprland's
-``windowrule ... class:^(dino)$`` rules match — and the flag(s) for hiding
+``windowrule ... match:class ^(dino)$`` rules match — and the flag(s) for hiding
 window decorations so the TUI looks like an app, not a terminal.
 """
 
