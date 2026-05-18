@@ -393,8 +393,8 @@ def _maybe_setup_clipboard_persistence(console) -> None:
         distro = _distro_id()
         if distro in ("arch", "manjaro", "endeavouros", "cachyos"):
             console.print(
-                "  Instalación: [bold]paru -S wl-clip-persist-bin[/bold] "
-                "(o yay -S wl-clip-persist-bin) — está en AUR."
+                "  Instalación: [bold]sudo pacman -S wl-clip-persist[/bold] "
+                "(en el repo oficial [italic]extra[/italic])."
             )
         elif distro in ("debian", "ubuntu", "pop", "linuxmint"):
             console.print(
@@ -404,9 +404,9 @@ def _maybe_setup_clipboard_persistence(console) -> None:
             )
         elif distro in ("fedora", "nobara", "rhel"):
             console.print(
-                "  Instalación: [bold]cargo install wl-clip-persist[/bold] "
-                "o descargá un release prebuilt de "
-                "[link]https://github.com/Linus789/wl-clip-persist/releases[/link]"
+                "  Instalación: [bold]sudo dnf copr enable atim/wl-clip-persist && "
+                "sudo dnf install wl-clip-persist[/bold] "
+                "o `cargo install wl-clip-persist`."
             )
         else:
             console.print(

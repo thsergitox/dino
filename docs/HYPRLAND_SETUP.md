@@ -119,18 +119,25 @@ If the wrong source is captured, set it as default in `wpctl` or `pavucontrol`.
 
 `dino setup` checks for `wl-clip-persist`: if it's installed it offers to add `exec-once = wl-clip-persist` to your `hyprland.conf`; if it isn't, the wizard prints the right install command for your distro.
 
-**Manual install (Arch, AUR):**
+**Manual install (Arch, official `extra` repo):**
 
 ```bash
-paru -S wl-clip-persist-bin    # or: yay -S wl-clip-persist-bin
+sudo pacman -S wl-clip-persist
 ```
 
-**Manual install (Debian/Ubuntu/Fedora/openSUSE — no official package):**
+**Manual install (Debian/Ubuntu/openSUSE — no official package):**
 
 ```bash
 cargo install wl-clip-persist
 # or grab a precompiled release from
 # https://github.com/Linus789/wl-clip-persist/releases
+```
+
+**Manual install (Fedora — atim copr):**
+
+```bash
+sudo dnf copr enable atim/wl-clip-persist
+sudo dnf install wl-clip-persist
 ```
 
 **Wire it into Hyprland yourself:**

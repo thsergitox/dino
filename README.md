@@ -28,7 +28,7 @@ The internals are deliberately small (~700 LOC + numpy) and behind hexagonal por
 | Python ≥ 3.10 | runtime | `pacman -S python` / `apt install python3` |
 | PipeWire (`pw-record`) | audio capture | `pacman -S pipewire` / `apt install pipewire-bin` |
 | `wl-clipboard` | text output (`wl-copy`) | `pacman -S wl-clipboard` / `apt install wl-clipboard` |
-| `wl-clip-persist` *(recommended)* | keep clipboard across sessions | `paru -S wl-clip-persist-bin` (AUR) / `cargo install wl-clip-persist` |
+| `wl-clip-persist` *(recommended)* | keep clipboard across sessions | `pacman -S wl-clip-persist` (Arch extra) / `cargo install wl-clip-persist` |
 | `notify-send` *(optional)* | desktop notifications | `pacman -S libnotify` / `apt install libnotify-bin` |
 | OpenAI API key | transcription | <https://platform.openai.com/api-keys> |
 
