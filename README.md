@@ -66,6 +66,7 @@ Reload Hyprland (`hyprctl reload`), press `SUPER+Z`, the scratchpad appears. Ins
 dino           # launch the TUI (no args)
 dino tui       # launch the TUI explicitly (accepts --lang es|en)
 dino setup     # interactive first-run wizard
+dino auth      # change the OpenAI API key only (keeps the rest of your config)
 dino start     # legacy push-to-talk press (used in Hyprland bind)
 dino stop      # legacy push-to-talk release (used in Hyprland bindr)
 dino toggle    # legacy: start if idle, otherwise stop

@@ -71,6 +71,7 @@ class DinoApp(App):
             model=config.model,
             language=config.language,
             prompt=config.prompt,
+            timeout=config.timeout_seconds,
         )
         self._output: "TextOutput" = build_output(config.output_adapter)
         self._last_wav: Path | None = None

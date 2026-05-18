@@ -174,9 +174,20 @@ Bind the hotkey in Hyprland — `dino setup` offers to do this for you, or do it
 | `DINO_LANGUAGE` | ISO-639-1 language hint for transcription (`en`, `es`, …) | auto-detect |
 | `DINO_LANG` | TUI UI language (`es` / `en`) — override `[tui].language` | `es` |
 | `DINO_PROMPT` | Vocabulary bias prompt | *(empty)* |
+| `DINO_TIMEOUT` | Whisper API timeout in seconds | `30` |
 | `TERMINAL` | Override auto-detect for terminal-launch command | auto |
 | `XDG_CONFIG_HOME` | Config file root | `~/.config` |
 | `XDG_RUNTIME_DIR` | PID / WAV root | `/tmp/dino-$UID` |
+
+### Changing only the API key
+
+Use the dedicated command — keeps every other setting (model, language, prompt, TUI prefs) intact:
+
+```bash
+dino auth
+```
+
+It shows the masked current key, prompts for the new one (input hidden), validates the `sk-` prefix, and writes the new value to `~/.config/dino/config.toml` with `chmod 600`.
 
 ## Uninstall
 

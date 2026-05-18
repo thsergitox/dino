@@ -10,7 +10,7 @@ import requests
 from dino.stt.base import TranscriberError
 
 _ENDPOINT = "https://api.openai.com/v1/audio/transcriptions"
-_TIMEOUT_SECONDS = 60
+_DEFAULT_TIMEOUT = 30.0
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,7 @@ class OpenAIWhisper:
     model: str = "whisper-1"
     language: str | None = None
     prompt: str | None = None
+    timeout: float = _DEFAULT_TIMEOUT
 
     def transcribe(self, audio_path: Path) -> str:
         if not audio_path.is_file():
@@ -37,8 +38,15 @@ class OpenAIWhisper:
                     headers={"Authorization": f"Bearer {self.api_key}"},
                     data=data,
                     files={"file": (audio_path.name, fh, "audio/wav")},
-                    timeout=_TIMEOUT_SECONDS,
+                    timeout=self.timeout,
                 )
+        except requests.Timeout as exc:
+            # Surface timeout as its own error so the TUI can show a precise message
+            # ("la transcripción se demoró más de Xs") instead of a generic network error.
+            raise TranscriberError(
+                f"Transcription timed out after {self.timeout:g}s. "
+                "Check your connection or raise [whisper].timeout_seconds in config.toml."
+            ) from exc
         except requests.RequestException as exc:
             raise TranscriberError(f"Network error contacting OpenAI: {exc}") from exc
 

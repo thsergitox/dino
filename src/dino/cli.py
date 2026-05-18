@@ -89,6 +89,7 @@ def _cmd_stop(args: argparse.Namespace) -> int:
         model=config.model,
         language=config.language,
         prompt=config.prompt,
+        timeout=config.timeout_seconds,
     )
     try:
         text = transcriber.transcribe(wav_path)
@@ -129,6 +130,12 @@ def _cmd_setup(args: argparse.Namespace) -> int:
     return setup_wizard.run()
 
 
+def _cmd_auth(args: argparse.Namespace) -> int:
+    from dino import auth
+
+    return auth.run()
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="dino",
@@ -159,6 +166,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "setup",
         help="Interactive first-run configuration (provider, API key, Hyprland binding).",
     ).set_defaults(func=_cmd_setup)
+    sub.add_parser(
+        "auth",
+        help="Change the OpenAI API key without re-running the full setup.",
+    ).set_defaults(func=_cmd_auth)
 
     return parser
 
