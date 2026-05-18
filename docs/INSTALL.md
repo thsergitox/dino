@@ -176,13 +176,28 @@ Bind the hotkey in Hyprland — `dino setup` offers to do this for you, or do it
 
 ## Uninstall
 
-```bash
-# uv install
-uv tool uninstall dino-voice
+The one-liner mirrors the installer:
 
-# pipx install
-pipx uninstall dino-voice
+```bash
+./scripts/uninstall.sh
+```
+
+It stops any running TUI, removes the Python package (auto-detects `uv tool` or `pipx`), deletes `~/.config/dino/`, and offers to remove the dino block from `~/.config/hypr/hyprland.conf` (shows you the lines first, asks before applying).
+
+System packages (`pw-record`, `wl-clipboard`, `libnotify`, `wl-clip-persist`, `uv`, `pipx`) are **not** removed — they're shared with other tools.
+
+### Manual uninstall
+
+If you don't want to run the script:
+
+```bash
+# Remove the package
+uv tool uninstall dino-voice    # or: pipx uninstall dino-voice
 
 # Remove your configuration
 rm -rf ~/.config/dino
+
+# Manually remove the dino block from ~/.config/hypr/hyprland.conf
+$EDITOR ~/.config/hypr/hyprland.conf
+hyprctl reload
 ```
