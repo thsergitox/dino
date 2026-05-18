@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dino-voice"
-version = "0.2.7"
+version = "0.2.8"
 description = "Persistent voice-dictation TUI for Hyprland — Whisper-powered, designed to grow into a voice assistant."
 readme = "README.md"
 license = { text = "MIT" }
