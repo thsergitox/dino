@@ -44,8 +44,15 @@ class SpectrumWidget(Static):
     }
     """
 
-    def __init__(self, recorder: "StreamingRecorder | None" = None):
-        super().__init__()
+    def __init__(
+        self,
+        recorder: "StreamingRecorder | None" = None,
+        *,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+    ):
+        super().__init__(name=name, id=id, classes=classes)
         self._recorder: "StreamingRecorder | None" = recorder
         self._worker: asyncio.Task | None = None
 
