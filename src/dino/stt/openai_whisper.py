@@ -12,6 +12,19 @@ from dino.stt.base import TranscriberError
 _ENDPOINT = "https://api.openai.com/v1/audio/transcriptions"
 _DEFAULT_TIMEOUT = 30.0
 
+# Module-level lazy Session. requests.Session pools HTTPS connections, so the
+# second call onward skips the ~200-400ms TLS handshake to api.openai.com.
+# Important for LATAM users: round-trip to OpenAI's US datacenters dominates
+# perceived latency on short transcripts.
+_session: requests.Session | None = None
+
+
+def _get_session() -> requests.Session:
+    global _session
+    if _session is None:
+        _session = requests.Session()
+    return _session
+
 
 @dataclass(frozen=True)
 class OpenAIWhisper:
@@ -33,7 +46,7 @@ class OpenAIWhisper:
 
         try:
             with audio_path.open("rb") as fh:
-                response = requests.post(
+                response = _get_session().post(
                     _ENDPOINT,
                     headers={"Authorization": f"Bearer {self.api_key}"},
                     data=data,

@@ -16,7 +16,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "es": {
         "status.idle":         "Espacio para grabar",
         "status.listening":    "Escuchando…",
-        "status.transcribing": "Transcribiendo…",
+        "status.transcribing": "Transcribiendo… {seconds:.1f}s",
         "status.copied":       "Copiado al portapapeles",
         "status.error":        "Error: {msg}",
         "status.no_speech":    "Sin habla detectada",
@@ -37,7 +37,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "en": {
         "status.idle":         "Space to record",
         "status.listening":    "Listening…",
-        "status.transcribing": "Transcribing…",
+        "status.transcribing": "Transcribing… {seconds:.1f}s",
         "status.copied":       "Copied to clipboard",
         "status.error":        "Error: {msg}",
         "status.no_speech":    "No speech detected",

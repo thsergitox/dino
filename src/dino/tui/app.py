@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -76,6 +77,15 @@ class DinoApp(App):
         self._output: "TextOutput" = build_output(config.output_adapter)
         self._last_wav: Path | None = None
         self._last_error_msg: str | None = None
+        # Used to discard a late transcription result if the user cancelled.
+        # Each `_transcribe_path` call captures `_transcribe_gen`; if it
+        # changes (cancel / new request) the captured value won't match and
+        # the result is dropped.
+        self._transcribe_gen: int = 0
+        # Wall-clock start of the current TRANSCRIBING phase. Drives the
+        # "Transcribiendo… 2.3s" elapsed counter via a Textual interval timer.
+        self._transcribe_started_at: float | None = None
+        self._transcribe_ticker = None  # type: ignore[var-annotated]
 
     # ── Layout ──────────────────────────────────────────────────────────────
 
@@ -109,6 +119,10 @@ class DinoApp(App):
         footer: FooterHints = self.query_one("#footer", FooterHints)
         spectrum: SpectrumWidget = self.query_one("#spectrum", SpectrumWidget)
 
+        # Any state change leaves TRANSCRIBING — stop the elapsed-time ticker.
+        if self.state != AppState.TRANSCRIBING:
+            self._stop_transcribe_ticker()
+
         if self.state == AppState.IDLE:
             status.set_status("status.idle", tone="cyan")
             footer.set_key("footer.idle")
@@ -118,9 +132,12 @@ class DinoApp(App):
             footer.set_key("footer.recording")
             spectrum.start()
         elif self.state == AppState.TRANSCRIBING:
-            status.set_status("status.transcribing", tone="yellow")
+            self._transcribe_started_at = time.monotonic()
+            status.set_status("status.transcribing", tone="yellow", seconds=0.0)
             footer.set_key("footer.transcribing")
             spectrum.stop()
+            # 100ms tick gives a smooth elapsed counter without being wasteful.
+            self._transcribe_ticker = self.set_interval(0.1, self._tick_transcribe_clock)
         elif self.state == AppState.CLIPBOARDING:
             status.set_status("status.copied", tone="green")
             footer.set_key("footer.idle")
@@ -128,6 +145,19 @@ class DinoApp(App):
             status.set_status("status.error", tone="bright_red", msg=self._last_error_msg or "")
             footer.set_key("footer.error")
             spectrum.stop()
+
+    def _tick_transcribe_clock(self) -> None:
+        if self.state != AppState.TRANSCRIBING or self._transcribe_started_at is None:
+            return
+        elapsed = time.monotonic() - self._transcribe_started_at
+        status: StatusLabel = self.query_one("#status", StatusLabel)
+        status.set_status("status.transcribing", tone="yellow", seconds=elapsed)
+
+    def _stop_transcribe_ticker(self) -> None:
+        if self._transcribe_ticker is not None:
+            self._transcribe_ticker.stop()
+            self._transcribe_ticker = None
+        self._transcribe_started_at = None
 
     # ── Actions (key bindings) ──────────────────────────────────────────────
 
@@ -142,8 +172,11 @@ class DinoApp(App):
             await self._recorder.cancel()
             self._set_state(AppState.IDLE)
         elif self.state == AppState.TRANSCRIBING:
-            # The to_thread task can't really be interrupted; we just flip state
-            # and ignore the late result.
+            # The to_thread task can't be interrupted (requests.post blocks);
+            # we bump _transcribe_gen so the late result is discarded by
+            # _transcribe_path when it finally returns, and flip state now
+            # so the UI feels responsive.
+            self._transcribe_gen += 1
             self._set_state(AppState.IDLE)
         elif self.state == AppState.ERROR:
             self._set_state(AppState.IDLE)
@@ -178,11 +211,22 @@ class DinoApp(App):
         await self._transcribe_path(wav_path)
 
     async def _transcribe_path(self, wav_path: Path) -> None:
+        # Capture the current generation so we can detect cancellation. If the
+        # user presses Esc while we're awaiting the API, action_cancel bumps
+        # `_transcribe_gen` and flips the state — when we wake up here, we
+        # check and silently drop the result.
+        my_gen = self._transcribe_gen
+
         try:
             text = await asyncio.to_thread(self._transcriber.transcribe, wav_path)
         except TranscriberError as exc:
+            if my_gen != self._transcribe_gen:
+                return  # cancelled — swallow the error too
             self._fail(t("error.api", msg=str(exc)))
             return
+
+        if my_gen != self._transcribe_gen:
+            return  # user cancelled while we were waiting on the API
 
         text = text.strip()
         if not text:
