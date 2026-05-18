@@ -273,10 +273,10 @@ def _build_hyprland_block(term_spec, lifecycle: str) -> str:
 
     common_rules = textwrap.dedent(
         """\
-        windowrulev2 = workspace special:dino silent, class:^(dino)$
-        windowrulev2 = float, class:^(dino)$
-        windowrulev2 = size 60% 50%, class:^(dino)$
-        windowrulev2 = center 1, class:^(dino)$
+        windowrule = workspace special:dino silent, class:^(dino)$
+        windowrule = float, class:^(dino)$
+        windowrule = size 60% 50%, class:^(dino)$
+        windowrule = center 1, class:^(dino)$
         """
     )
 
